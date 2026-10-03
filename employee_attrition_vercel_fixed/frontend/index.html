@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Employee Attrition Analytics System | HR Decision Support</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Chart.js & Datalabels Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- 1. LOGIN SCREEN OVERLAY -->
+    <div id="login-screen" class="login-overlay">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="brand-icon-lg">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </div>
+                <h1 class="login-title">Employee Attrition Analytics Portal</h1>
+                <p class="login-subtitle">Sign in to access corporate workforce risk intelligence & SHAP decision
+                    support</p>
+            </div>
+
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="login-email">Corporate Email / Username</label>
+                    <input type="email" id="login-email" value="hr@company.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="login-password" value="admin123" required>
+                        <button type="button" class="btn-toggle-pw" id="toggle-pw-btn"
+                            onclick="togglePasswordVisibility()">Show</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" style="margin-top: 20px;">Sign In to
+                    Portal</button>
+                <button type="button" class="btn btn-outline btn-block" style="margin-top: 10px;"
+                    onclick="quickLogin()">Quick Demo Sign-in</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP WRAPPER (Hidden until login) -->
+    <div id="app-wrapper" style="display: none;">
+
+        <!-- 2. NAVBAR -->
+        <header class="navbar">
+            <div class="nav-brand">
+                <div class="brand-logo">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <polyline points="16 11 18 13 22 9"></polyline>
+                    </svg>
+                </div>
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="brand-title">Employee Attrition Analytics</span>
+                        <span class="live-status-pill"><span class="live-dot"></span> LIVE DATASTREAM</span>
+                    </div>
+                    <span class="brand-subtitle">Real-Time Company Attrition Prediction & SHAP Decision Support</span>
+                </div>
+            </div>
+
+            <nav class="nav-tabs">
+                <button class="nav-btn active" data-tab="tab-dashboard">Dashboard</button>
+                <button class="nav-btn" data-tab="tab-predictor">Predict Risk</button>
+                <button class="nav-btn" data-tab="tab-batch">Batch Audit</button>
+                <button class="nav-btn" data-tab="tab-analytics">Analytics</button>
+            </nav>
+
+            <div class="nav-right-tools">
+                <div class="company-selector-wrapper">
+                    <span class="company-select-label">Company Dataset:</span>
+                    <select id="header-company-selector" class="company-select"
+                        onchange="handleCompanyChange(this.value)">
+                        <option value="All Companies" selected>All Companies (Aggregated)</option>
+                        <option value="TCS">TCS (Tata Consultancy Services)</option>
+                        <option value="Wipro">Wipro</option>
+                        <option value="Infosys">Infosys</option>
+                        <option value="IBM">IBM HR Benchmark</option>
+                        <option value="Cognizant">Cognizant</option>
+                        <option value="Accenture">Accenture</option>
+                        <option value="Microsoft">Microsoft</option>
+                        <option value="Google">Google</option>
+                        <option value="Amazon">Amazon</option>
+                        <option value="Meta">Meta</option>
+                        <option value="Deloitte">Deloitte</option>
+                        <option value="Capgemini">Capgemini</option>
+                    </select>
+                </div>
+                <button class="btn btn-outline" style="padding: 6px 12px; font-size: 12px;"
+                    onclick="handleLogout()">Logout</button>
+            </div>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-container">
+
+            <!-- TAB 1: MAIN DASHBOARD -->
+            <section id="tab-dashboard" class="tab-content active">
+
+                <!-- Hero Section -->
+                <div class="hero-banner">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+                        <div style="max-width: 720px;">
+                            <h1 class="hero-title">Explainable Employee Attrition & Retention Platform</h1>
+                            <p class="hero-desc">Accurately forecast employee turnover risk, understand the exact
+                                organizational drivers using game-theoretic SHAP explainability, and simulate effective
+                                HR retention policies across 12 major corporate datasets.</p>
+                        </div>
+                        <div class="company-active-badge" id="dash-company-badge">
+                            Active Corporate Dataset: <strong id="dash-active-company-name">All Companies</strong>
+                        </div>
+                    </div>
+                    <div class="hero-actions">
+                        <button class="btn btn-primary" onclick="switchTab('tab-predictor')">⚡ Predict Single Employee
+                            Risk</button>
+                        <button class="btn btn-outline" onclick="switchTab('tab-batch')">📁 Upload CSV & Team
+                            Audit</button>
+                        <button class="btn btn-outline" onclick="switchTab('tab-analytics')">📊 View Executive
+                            Analytics</button>
+                    </div>
+                </div>
+
+                <!-- Step-by-Step Easy Understanding Guide -->
+                <div style="margin-bottom: 28px;">
+                    <h3
+                        style="font-size: 16px; font-weight: 700; margin-bottom: 14px; color: var(--text-dark); display: flex; align-items: center; gap: 8px;">
+                        <span>💡 How to Use the Attrition Platform (3 Simple Steps)</span>
+                    </h3>
+                    <div class="steps-grid">
+                        <div class="step-card">
+                            <div class="step-number">1</div>
+                            <div class="step-title">Select Corporate Dataset</div>
+                            <p class="step-desc">Pick a company from 12 real-time benchmark datasets (TCS, Wipro,
+                                Infosys, Microsoft, Google, IBM, etc.) or view aggregated workforce metrics.</p>
+                        </div>
+                        <div class="step-card">
+                            <div class="step-number">2</div>
+                            <div class="step-title">Run Prediction & SHAP Analysis</div>
+                            <p class="step-desc">Enter 8 essential predictor variables (Overtime, Income, Satisfaction,
+                                Tenure, etc.) to get instant Attrition Probability % and clear plain-English reasons.
+                            </p>
+                        </div>
+                        <div class="step-card">
+                            <div class="step-number">3</div>
+                            <div class="step-title">Execute HR Retention Interventions</div>
+                            <p class="step-desc">Review non-punitive review recommendations (workload cap, compensation
+                                alignment, hybrid flexibility) or batch screen entire teams via CSV upload.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI Overview Grid -->
+                <div class="kpi-grid" style="margin-bottom: 28px;">
+                    <div class="kpi-card">
+                        <div class="kpi-title">Total Active Workforce</div>
+                        <div class="kpi-value" id="kpi-total-val">--</div>
+                        <div class="kpi-sub" id="kpi-total-sub">Analyzed Employee Records</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">Overall Attrition Rate</div>
+                        <div class="kpi-value" style="color: var(--danger);" id="kpi-attr-rate-val">--%</div>
+                        <div class="kpi-sub" id="kpi-attr-count-sub">High Risk Turnover Category</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">Average Monthly Compensation</div>
+                        <div class="kpi-value" style="color: var(--primary);" id="kpi-avg-income-val">$--</div>
+                        <div class="kpi-sub">Workforce Income Median</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">Stacking Ensemble Accuracy</div>
+                        <div class="kpi-value" style="color: var(--success);">99.3%</div>
+                        <div class="kpi-sub">Validated Model Benchmark (SMOTE + SHAP)</div>
+                    </div>
+                </div>
+
+                <!-- Company Dataset Switcher Grid -->
+                <div style="margin-bottom: 24px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-dark); margin: 0;">🏢
+                            Interactive Corporate Dataset Switcher (12 Datasets)</h3>
+                        <span style="font-size: 12px; color: var(--text-muted);">Click any company card below to switch
+                            dataset filter</span>
+                    </div>
+                    <div class="company-cards-grid" id="company-cards-container">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                </div>
+
+            </section>
+
+
+            <!-- TAB 2: EMPLOYEE PREDICTION FORM & SHAP EXPLAINABILITY -->
+            <section id="tab-predictor" class="tab-content">
+                <div class="preset-bar">
+                    <span class="preset-label">Quick Sample Profiles:</span>
+                    <button type="button" class="btn btn-outline" style="padding: 4px 10px; font-size: 12px;"
+                        onclick="loadPreset('high_risk')">High Risk Sample</button>
+                    <button type="button" class="btn btn-outline" style="padding: 4px 10px; font-size: 12px;"
+                        onclick="loadPreset('low_risk')">Low Risk Sample</button>
+                    <button type="button" class="btn btn-outline" style="padding: 4px 10px; font-size: 12px;"
+                        onclick="loadPreset('executive')">Executive Sample</button>
+                </div>
+
+                <div class="grid-2col">
+                    <!-- Left Column: Input Form (8 Streamlined Required Predictors) -->
+                    <div class="card">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                            <h2 class="card-title" style="margin-bottom: 0;">Employee Attrition Prediction Form</h2>
+                            <span
+                                style="font-size: 11px; background: #eff6ff; color: #1d4ed8; padding: 3px 8px; border-radius: 12px; font-weight: 600;">8
+                                Required Fields</span>
+                        </div>
+                        <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px;">Fill in the
+                            essential employee attributes required to estimate turnover probability and analyze
+                            attrition drivers.</p>
+
+                        <form id="single-predictor-form">
+
+                            <!-- Field Group 1: Role & Demographics -->
+                            <div class="form-section-header">1. Role & Demographics</div>
+                            <div class="form-grid-2">
+                                <div class="form-group">
+                                    <label for="field-Age">Age (Years)</label>
+                                    <input type="number" id="field-Age" name="Age" min="18" max="65" value="32"
+                                        required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="field-JobRole">Job Role</label>
+                                    <select id="field-JobRole" name="JobRole" required>
+                                        <option value="Sales Executive" selected>Sales Executive</option>
+                                        <option value="Research Scientist">Research Scientist</option>
+                                        <option value="Laboratory Technician">Laboratory Technician</option>
+                                        <option value="Manufacturing Director">Manufacturing Director</option>
+                                        <option value="Healthcare Representative">Healthcare Representative</option>
+                                        <option value="Manager">Manager</option>
+                                        <option value="Sales Representative">Sales Representative</option>
+                                        <option value="Research Director">Research Director</option>
+                                        <option value="Human Resources">Human Resources</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Field Group 2: Compensation & Overtime Work -->
+                            <div class="form-section-header">2. Compensation & Overtime Work</div>
+                            <div class="form-grid-2">
+                                <div class="form-group">
+                                    <label for="field-MonthlyIncome">Monthly Salary ($)</label>
+                                    <input type="number" id="field-MonthlyIncome" name="MonthlyIncome" min="1000"
+                                        max="25000" value="3200" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="field-OverTime">Overtime Work</label>
+                                    <select id="field-OverTime" name="OverTime" required>
+                                        <option value="Yes" selected>Yes (Frequent Overtime)</option>
+                                        <option value="No">No (Standard Working Hours)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Field Group 3: Satisfaction & Work-Life Balance -->
+                            <div class="form-section-header">3. Satisfaction & Work-Life Balance</div>
+                            <div class="form-grid-2">
+                                <div class="form-group">
+                                    <label for="field-JobSatisfaction">Job Satisfaction (1-4)</label>
+                                    <select id="field-JobSatisfaction" name="JobSatisfaction" required>
+                                        <option value="1" selected>1 - Low Satisfaction</option>
+                                        <option value="2">2 - Medium Satisfaction</option>
+                                        <option value="3">3 - High Satisfaction</option>
+                                        <option value="4">4 - Very High Satisfaction</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="field-WorkLifeBalance">Work-Life Balance (1-4)</label>
+                                    <select id="field-WorkLifeBalance" name="WorkLifeBalance" required>
+                                        <option value="1" selected>1 - Poor Balance</option>
+                                        <option value="2">2 - Good Balance</option>
+                                        <option value="3">3 - Better Balance</option>
+                                        <option value="4">4 - Best Balance</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Field Group 4: Tenure & Commute -->
+                            <div class="form-section-header">4. Tenure & Commute</div>
+                            <div class="form-grid-2">
+                                <div class="form-group">
+                                    <label for="field-YearsAtCompany">Years at Company</label>
+                                    <input type="number" id="field-YearsAtCompany" name="YearsAtCompany" min="0"
+                                        max="40" value="2" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="field-DistanceFromHome">Distance From Home (km)</label>
+                                    <input type="number" id="field-DistanceFromHome" name="DistanceFromHome" min="1"
+                                        max="40" value="21" required>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-block" style="margin-top: 18px;"
+                                id="btn-submit-predict">Predict Attrition Risk & Analyze Factors</button>
+                        </form>
+                    </div>
+
+                    <!-- Right Column: Results & Attrition Factors Breakdown -->
+                    <div>
+                        <!-- Prediction Result Card -->
+                        <div class="card result-card" id="res-card-wrapper">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <h3>Prediction Result</h3>
+                                <span class="risk-badge" id="res-risk-badge">Ready</span>
+                            </div>
+                            <div class="prob-display" id="res-prob-pct">--%</div>
+                            <p id="res-summary-text" style="font-size: 13.5px; color: var(--text-muted);">Enter employee
+                                details and click Predict Attrition Risk.</p>
+                        </div>
+
+                        <!-- Reasons / Factors Behind Employee Attrition -->
+                        <div class="card explain-section">
+                            <h3 class="card-title">Why is this employee predicted to leave / stay?</h3>
+                            <div class="explain-disclaimer-box">
+                                The factors below show the key drivers calculated by the SHAP Explainability Model that
+                                contributed most to this employee's attrition prediction.
+                            </div>
+
+                            <div style="margin-bottom: 20px;">
+                                <h4
+                                    style="font-size: 13px; font-weight: 700; color: var(--danger); margin-bottom: 10px;">
+                                    Key Factors Increasing Attrition Risk
+                                </h4>
+                                <div id="factors-push-container">
+                                    <p class="text-muted">No leave drivers analyzed yet.</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4
+                                    style="font-size: 13px; font-weight: 700; color: var(--success); margin-bottom: 10px;">
+                                    Key Factors Reducing Attrition Risk
+                                </h4>
+                                <div id="factors-pull-container">
+                                    <p class="text-muted">No stay drivers analyzed yet.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Employee Risk Summary & Actionable Recommendations -->
+                        <div class="summary-card">
+                            <h4 class="card-title" style="font-size: 15px;">Employee Risk Summary & HR Action</h4>
+                            <div class="summary-row">
+                                <span>Risk Level:</span>
+                                <strong id="sum-risk-level">--</strong>
+                            </div>
+                            <div class="summary-row">
+                                <span>Turnover Probability:</span>
+                                <strong id="sum-prob">--%</strong>
+                            </div>
+                            <div class="summary-row">
+                                <span>Primary Attrition Driver:</span>
+                                <strong id="sum-main-factor">Frequent Overtime Work</strong>
+                            </div>
+                            <div class="summary-row">
+                                <span>Secondary Attrition Driver:</span>
+                                <strong id="sum-sec-factor">Below-Median Salary</strong>
+                            </div>
+                            <div class="summary-row">
+                                <span>Recommended HR Intervention:</span>
+                                <span id="sum-hr-action" style="font-size: 12px; color: var(--text-muted);">Review
+                                    workload cap and salary band</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- TAB 3: BATCH TEAM AUDIT (CSV SCREENING) -->
+            <section id="tab-batch" class="tab-content">
+                <div class="card">
+                    <h2 class="card-title">Batch Team Attrition Audit (CSV Assessment)</h2>
+                    <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 16px;">Upload a CSV file
+                        containing multiple employee records or run a real-time sample audit across selected company
+                        dataset.</p>
+
+                    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                        <input type="file" id="batch-file-input" accept=".csv" style="display:none;"
+                            onchange="handleFileUpload(this.files[0])">
+                        <button class="btn btn-primary"
+                            onclick="document.getElementById('batch-file-input').click()">Upload Employee CSV</button>
+                        <button class="btn btn-outline" onclick="runSampleBatch()">Run Company Sample Batch
+                            Assessment</button>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; justify-content: space-between; margin-bottom: 16px;">
+                        <input type="text" id="batch-search-input" placeholder="Search Employee ID, Role, or Company..."
+                            style="max-width: 320px;" oninput="filterBatchTable()">
+                        <div style="display: flex; gap: 12px;">
+                            <select id="batch-risk-filter" onchange="filterBatchTable()">
+                                <option value="All">All Risk Levels</option>
+                                <option value="High">High Risk Only</option>
+                                <option value="Medium">Medium Risk Only</option>
+                                <option value="Low">Low Risk Only</option>
+                            </select>
+                            <button class="btn btn-outline" onclick="exportBatchCSV()">Export Audit to CSV</button>
+                        </div>
+                    </div>
+
+                    <div style="overflow-x: auto;">
+                        <table class="data-table" id="batch-table">
+                            <thead>
+                                <tr>
+                                    <th>Employee ID</th>
+                                    <th>Company</th>
+                                    <th>Job Role</th>
+                                    <th>Monthly Income</th>
+                                    <th>Overtime</th>
+                                    <th>Risk Probability</th>
+                                    <th>Risk Level</th>
+                                    <th>Key Attrition Drivers</th>
+                                </tr>
+                            </thead>
+                            <tbody id="batch-table-body">
+                                <tr>
+                                    <td colspan="8" style="text-align: center; color: var(--text-muted);">No batch
+                                        assessment run yet. Click "Run Company Sample Batch Assessment".</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- TAB 4: REAL-TIME ANALYTICS -->
+            <section id="tab-analytics" class="tab-content">
+                <!-- Analytics Company Selector Bar -->
+                <div class="analytics-filter-bar">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="font-weight: 700; font-size: 14px; color: var(--text-dark);">Analytics Company
+                            Filter:</span>
+                        <select id="analytics-company-selector" class="company-select" style="min-width: 220px;"
+                            onchange="handleAnalyticsCompanyChange(this.value)">
+                            <option value="All Companies" selected>All Companies (Aggregated)</option>
+                            <option value="TCS">TCS (Tata Consultancy Services)</option>
+                            <option value="Wipro">Wipro</option>
+                            <option value="Infosys">Infosys</option>
+                            <option value="IBM">IBM HR Benchmark</option>
+                            <option value="Cognizant">Cognizant</option>
+                            <option value="Accenture">Accenture</option>
+                            <option value="Microsoft">Microsoft</option>
+                            <option value="Google">Google</option>
+                            <option value="Amazon">Amazon</option>
+                            <option value="Meta">Meta</option>
+                            <option value="Deloitte">Deloitte</option>
+                            <option value="Capgemini">Capgemini</option>
+                        </select>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted);" id="analytics-active-info">
+                        Showing metrics for <strong>All Companies</strong> (Aggregated Dataset)
+                    </div>
+                </div>
+
+                <div class="kpi-grid" style="margin-bottom: 24px;">
+                    <div class="kpi-card">
+                        <div class="kpi-title">Analyzed Records</div>
+                        <div class="kpi-value" id="ana-kpi-total">--</div>
+                        <div class="kpi-sub" id="ana-kpi-dataset-sub">Real-Time Active Company Dataset</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">High Attrition Risk</div>
+                        <div class="kpi-value" style="color: var(--danger);" id="ana-kpi-high">--%</div>
+                        <div class="kpi-sub" id="ana-kpi-high-count">-- Employees</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">Medium Attrition Risk</div>
+                        <div class="kpi-value" style="color: var(--warning);" id="ana-kpi-med">--%</div>
+                        <div class="kpi-sub" id="ana-kpi-med-count">-- Employees</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">Low Attrition Risk</div>
+                        <div class="kpi-value" style="color: var(--success);" id="ana-kpi-low">--%</div>
+                        <div class="kpi-sub" id="ana-kpi-low-count">-- Retained Employees</div>
+                    </div>
+                </div>
+
+                <div class="grid-2col">
+                    <!-- Pie Chart with Clearly Visible Values & Percentages -->
+                    <div class="card">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h3 class="card-title" style="margin-bottom: 0;">Attrition Risk Distribution</h3>
+                            <span class="visible-values-pill">Pie Chart Values Clearly Displayed</span>
+                        </div>
+                        <div style="height: 310px; position: relative;">
+                            <canvas id="chart-risk-pie"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Global SHAP Attrition Drivers Bar Chart -->
+                    <div class="card">
+                        <h3 class="card-title">Top Factors Driving Attrition (Global SHAP Impact)</h3>
+                        <div style="height: 310px; position: relative;">
+                            <canvas id="chart-global-importance"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Company-Wise Attrition Analysis Section -->
+                <div class="card" style="margin-top: 24px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                        <div>
+                            <h3 class="card-title" style="margin-bottom: 2px;">Company-Wise Attrition Comparison
+                                Analysis</h3>
+                            <p style="font-size: 12.5px; color: var(--text-muted); margin: 0;">Real-time comparison of
+                                attrition rates across 12 corporate datasets.</p>
+                        </div>
+                        <span class="risk-badge badge-low">Multi-Company Benchmark</span>
+                    </div>
+
+                    <div style="height: 300px; position: relative; margin-bottom: 20px;">
+                        <canvas id="chart-company-comparison"></canvas>
+                    </div>
+
+                    <!-- Company Comparison Data Table -->
+                    <div style="overflow-x: auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Company</th>
+                                    <th>Total Workforce</th>
+                                    <th>Attrition Rate (%)</th>
+                                    <th>High Risk</th>
+                                    <th>Medium Risk</th>
+                                    <th>Avg Monthly Income</th>
+                                    <th>Avg Tenure</th>
+                                    <th>OverTime %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="company-metrics-table-body">
+                                <tr>
+                                    <td colspan="8" style="text-align: center;">Loading company metrics...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 24px;">
+                    <h3 class="card-title">Job Role Attrition Rate (%) Breakdown</h3>
+                    <div style="height: 280px; position: relative;">
+                        <canvas id="chart-role-distribution"></canvas>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 24px;">
+                    <h3 class="card-title">Model Benchmark Accuracy Summary</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Model Architecture</th>
+                                <th>ROC-AUC Score</th>
+                                <th>Recall</th>
+                                <th>Precision</th>
+                                <th>F1 Score</th>
+                                <th>Accuracy</th>
+                            </tr>
+                        </thead>
+                        <tbody id="metrics-table-body">
+                            <tr>
+                                <td colspan="6" style="text-align: center;">Loading model benchmarks...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Application Script -->
+    <script src="/static/app.js"></script>
+</body>
+
+</html>
